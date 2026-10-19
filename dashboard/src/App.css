@@ -1,8 +1,8 @@
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #0d0b08;
-  color: #f0e6d2;
+  background: #f5e6b8;
+  color: #3a2e1f;
 }
 
 * { box-sizing: border-box; }
@@ -10,7 +10,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #0d0b08;
+  background: linear-gradient(180deg, #f5e6b8 0%, #e8d090 100%);
 }
 
 .app {
@@ -25,14 +25,15 @@ header {
   align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid #2a2218;
+  border-bottom: 2px solid #b8942e;
 }
 
 h1 {
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   margin: 0;
-  color: #f0c040;
+  color: #8a6b1a;
   letter-spacing: 0.02em;
+  text-shadow: 0 1px 0 #f5e6b8;
 }
 
 h2 {
@@ -41,19 +42,20 @@ h2 {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #f0e6d2;
+  color: #3a2e1f;
 }
 
 .count {
   font-size: 0.75rem;
-  background: #2a2218;
+  background: #8a6b1a;
+  color: #f5e6b8;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  color: #c9a961;
+  font-weight: 600;
 }
 
-.status .ok { color: #6ab04c; font-size: 0.85rem; }
-.status .err { color: #e85d4e; font-size: 0.85rem; }
+.status .ok { color: #2d6a1e; font-size: 0.85rem; font-weight: 600; }
+.status .err { color: #a83232; font-size: 0.85rem; font-weight: 600; }
 
 main {
   display: grid;
@@ -66,15 +68,17 @@ main {
 }
 
 .panel {
-  background: #1a1510;
-  border: 1px solid #3a2e1f;
-  border-radius: 8px;
+  background: #fff8e0;
+  border: 2px solid #b8942e;
+  border-radius: 10px;
   padding: 1rem;
+  box-shadow: 0 2px 8px rgba(138, 107, 26, 0.15);
 }
 
 .empty {
-  color: #8a7a5c;
+  color: #8a6b1a;
   font-size: 0.9rem;
+  font-style: italic;
 }
 
 .alerts {
@@ -92,29 +96,33 @@ main {
   gap: 0.25rem 0.75rem;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
-  border-left: 3px solid #8a7a5c;
-  background: #0d0b08;
+  border-left: 4px solid #8a6b1a;
+  background: #fffdf5;
 }
 
-.alert-high   { border-left-color: #e85d4e; }
-.alert-medium { border-left-color: #f0c040; }
-.alert-low    { border-left-color: #6ab04c; }
+.alert-high   { border-left-color: #c92a2a; }
+.alert-medium { border-left-color: #b8860b; }
+.alert-low    { border-left-color: #2d6a1e; }
 
 .badge {
   grid-row: span 2;
   align-self: start;
   font-size: 0.7rem;
-  padding: 0.15rem 0.4rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 4px;
-  background: #f0c040;
-  color: #0d0b08;
+  background: #8a6b1a;
+  color: #fff8e0;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.alert-title { font-weight: 600; color: #f0e6d2; }
-.alert-meta { font-size: 0.75rem; color: #8a7a5c; }
+.alert-high .badge   { background: #c92a2a; color: #fff8e0; }
+.alert-medium .badge { background: #b8860b; color: #fff8e0; }
+.alert-low .badge    { background: #2d6a1e; color: #fff8e0; }
+
+.alert-title { font-weight: 600; color: #3a2e1f; }
+.alert-meta { font-size: 0.75rem; color: #8a6b1a; }
 
 .events {
   width: 100%;
@@ -124,20 +132,28 @@ main {
 
 .events th {
   text-align: left;
-  color: #c9a961;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  border-bottom: 1px solid #2a2218;
+  color: #fff8e0;
+  background: #8a6b1a;
+  font-weight: 600;
+  padding: 0.35rem 0.5rem;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
 }
 
 .events td {
   padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid #1a1510;
+  border-bottom: 1px solid #e8d090;
+  color: #3a2e1f;
   vertical-align: top;
+}
+
+.events tr:nth-child(even) td {
+  background: #fffdf0;
 }
 
 .mono {
   font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
   font-size: 0.75rem;
-  color: #8a7a5c;
+  color: #8a6b1a;
 }
