@@ -9,6 +9,8 @@ logging.basicConfig(
 )
 
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
 
@@ -41,6 +43,17 @@ async def health(request):
 
 
 def create_app() -> Starlette:
+    middleware = [
+        Middleware(
+            CORSMiddleware,
+            allow_origins=[
+                "http://127.0.0.1:5173",
+                "http://localhost:5173",
+            ],
+            allow_methods=["GET"],
+            allow_headers=["*"],
+        ),
+    ]
     return Starlette(
         routes=[
             Route("/health", health),
@@ -48,6 +61,7 @@ def create_app() -> Starlette:
             Route("/api/alerts", list_alerts, methods=["GET"]),
             WebSocketRoute("/ws/ingest", ingest),
         ],
+        middleware=middleware,
         lifespan=lifespan,
     )
 
