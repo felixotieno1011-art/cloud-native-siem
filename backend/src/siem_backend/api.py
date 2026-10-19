@@ -1,0 +1,35 @@
+"""HTTP API endpoints."""
+
+import logging
+
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+
+from siem_backend.db import recent_events
+
+
+log = logging.getLogger("siem.api")
+
+
+async def list_events(request: Request) -> JSONResponse:
+    """GET /api/events?limit=50&agent_id=...
+
+    Returns the most recent events, newest first.
+    """
+    try:
+        limit = int(request.query_params.get("limit", "50"))
+    except ValueError:
+        return JSONResponse({"error": "limit must be an integer"}, status_code=400)
+    limit = max(1, min(limit, 500))
+
+    agent_id = request.query_params.get("agent_id") or None
+    if agent_id is not None and len(agent_id) > 128:
+        return JSONResponse({"error": "agent_id too long"}, status_code=400)
+
+    try:
+        rows = await recent_events(limit=limit, agent_id=agent_id)
+    except Exception as exc:
+        log.error("recent_events failed: %s", exc)
+        return JSONResponse({"error": "query failed"}, status_code=500)
+
+    return JSONResponse({"events": rows, "count": len(rows), "limit": limit})

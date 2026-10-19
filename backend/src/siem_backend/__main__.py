@@ -1,4 +1,4 @@
-"""Starlette app: WebSocket ingest + health endpoint."""
+"""Starlette app: WebSocket ingest + HTTP API + health."""
 
 import logging
 from contextlib import asynccontextmanager
@@ -13,6 +13,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
 
 from siem_backend import __version__
+from siem_backend.api import list_events
 from siem_backend.db import init_schema
 from siem_backend.ws import ingest
 
@@ -41,6 +42,7 @@ def create_app() -> Starlette:
     return Starlette(
         routes=[
             Route("/health", health),
+            Route("/api/events", list_events, methods=["GET"]),
             WebSocketRoute("/ws/ingest", ingest),
         ],
         lifespan=lifespan,
