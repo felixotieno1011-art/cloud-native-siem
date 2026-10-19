@@ -128,3 +128,60 @@ class NewListeningPort:
 
 _new_port_rule = NewListeningPort()
 register(_new_port_rule)
+
+
+class HighCpuSustained:
+    """Fire when CPU stays above threshold for N consecutive metric cycles."""
+
+    id = "high_cpu_sustained"
+    severity = "medium"
+    title = "Sustained high CPU usage"
+
+    threshold: float = 85.0
+    min_consecutive: int = 3
+    cooldown_seconds: int = 300
+
+    def evaluate(
+        self, event: dict, agent_id: str, context: RuleContext
+    ) -> Alert | None:
+        if event.get("type") != "metrics":
+            return None
+        try:
+            cpu = float(event.get("cpu_percent", 0.0))
+        except (TypeError, ValueError):
+            return None
+
+        now = time.time()
+        key = (self.id, agent_id)
+        state = context.get(key) or {"consecutive": 0, "last_alert": 0.0}
+
+        if cpu < self.threshold:
+            state["consecutive"] = 0
+            context.set(key, state)
+            return None
+
+        state["consecutive"] += 1
+        context.set(key, state)
+
+        if state["consecutive"] < self.min_consecutive:
+            return None
+        if now - state["last_alert"] < self.cooldown_seconds:
+            return None
+
+        state["last_alert"] = now
+        context.set(key, state)
+
+        return Alert(
+            rule_id=self.id,
+            severity=self.severity,
+            title=self.title,
+            details={
+                "consecutive": state["consecutive"],
+                "cpu_percent": cpu,
+                "threshold": self.threshold,
+            },
+        )
+
+
+_high_cpu_rule = HighCpuSustained()
+register(_high_cpu_rule)
