@@ -78,3 +78,53 @@ class FailedAuthSpike:
 
 _rule = FailedAuthSpike()
 register(_rule)
+
+
+class NewListeningPort:
+    """Fire when a port not in the agent's baseline starts listening.
+
+    First-ever run for an agent establishes the baseline silently.
+    Subsequent new ports trigger an alert.
+    """
+
+    id = "new_listening_port"
+    severity = "medium"
+    title = "New listening port detected"
+
+    def evaluate(
+        self, event: dict, agent_id: str, context: RuleContext
+    ) -> Alert | None:
+        if event.get("type") != "port_opened":
+            return None
+        try:
+            port = int(event.get("port"))
+        except (TypeError, ValueError):
+            return None
+
+        key = (self.id, agent_id)
+        baseline: set[int] = context.get(key) or set()
+
+        if not baseline:
+            baseline.add(port)
+            context.set(key, baseline)
+            return None
+
+        if port in baseline:
+            return None
+
+        baseline.add(port)
+        context.set(key, baseline)
+
+        return Alert(
+            rule_id=self.id,
+            severity=self.severity,
+            title=self.title,
+            details={
+                "port": port,
+                "baseline_ports": sorted(baseline),
+            },
+        )
+
+
+_new_port_rule = NewListeningPort()
+register(_new_port_rule)
