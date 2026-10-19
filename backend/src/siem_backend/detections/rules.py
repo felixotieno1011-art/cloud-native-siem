@@ -1,0 +1,80 @@
+"""Built-in detection rules."""
+
+import re
+import time
+from collections import deque
+
+from siem_backend.detections.engine import Alert, RuleContext, register
+
+
+FAILURE_PATTERNS = [
+    re.compile(r"Failed password", re.IGNORECASE),
+    re.compile(r"authentication failure", re.IGNORECASE),
+    re.compile(r"Invalid user", re.IGNORECASE),
+    re.compile(r"PAM authentication failure", re.IGNORECASE),
+]
+
+
+def _looks_like_failure(line: str) -> bool:
+    return any(p.search(line) for p in FAILURE_PATTERNS)
+
+
+class FailedAuthSpike:
+    """Fire when N auth failures occur for an agent in a sliding window."""
+
+    id = "auth_fail_spike"
+    severity = "high"
+    title = "Repeated authentication failures"
+
+    window_seconds: int = 300
+    threshold: int = 5
+    cooldown_seconds: int = 60
+
+    def evaluate(
+        self, event: dict, agent_id: str, context: RuleContext
+    ) -> Alert | None:
+        if event.get("type") != "auth":
+            return None
+        line = event.get("line", "")
+        if not _looks_like_failure(line):
+            return None
+        return self._track(agent_id, context, line)
+
+    def _track(
+        self, agent_id: str, context: RuleContext, line: str
+    ) -> Alert | None:
+        now = time.time()
+        key = (self.id, agent_id)
+        state = context.get(key) or {"window": deque(), "last_alert": 0.0}
+        window: deque = state["window"]
+
+        window.append(now)
+        cutoff = now - self.window_seconds
+        while window and window[0] < cutoff:
+            window.popleft()
+
+        context.set(key, state)
+
+        if len(window) < self.threshold:
+            return None
+        if now - state["last_alert"] < self.cooldown_seconds:
+            return None
+
+        state["last_alert"] = now
+        context.set(key, state)
+
+        return Alert(
+            rule_id=self.id,
+            severity=self.severity,
+            title=self.title,
+            details={
+                "count": len(window),
+                "window_seconds": self.window_seconds,
+                "threshold": self.threshold,
+                "sample_line": line[:200],
+            },
+        )
+
+
+_rule = FailedAuthSpike()
+register(_rule)
