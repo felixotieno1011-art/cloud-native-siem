@@ -176,28 +176,23 @@ async def insert_alert(
 def _recent_alerts_sync(limit: int, agent_id: str | None) -> list[dict]:
     conn = _conn()
     try:
+        base = (
+            "SELECT id, agent_id, rule_id, severity, title, details, "
+            "created_at, acknowledged_at FROM alerts "
+        )
         if agent_id:
             rows = conn.run(
-                "SELECT id, agent_id, rule_id, severity, title, details, created_at "
-                "FROM alerts WHERE agent_id = :agent_id "
-                "ORDER BY id DESC LIMIT :limit",
+                base + "WHERE agent_id = :agent_id ORDER BY id DESC LIMIT :limit",
                 agent_id=agent_id, limit=limit,
             )
         else:
-            rows = conn.run(
-                "SELECT id, agent_id, rule_id, severity, title, details, created_at "
-                "FROM alerts ORDER BY id DESC LIMIT :limit",
-                limit=limit,
-            )
+            rows = conn.run(base + "ORDER BY id DESC LIMIT :limit", limit=limit)
         return [
             {
-                "id": r[0],
-                "agent_id": r[1],
-                "rule_id": r[2],
-                "severity": r[3],
-                "title": r[4],
-                "details": r[5],
+                "id": r[0], "agent_id": r[1], "rule_id": r[2],
+                "severity": r[3], "title": r[4], "details": r[5],
                 "created_at": r[6].isoformat() if r[6] else None,
+                "acknowledged_at": r[7].isoformat() if r[7] else None,
             }
             for r in rows
         ]
@@ -208,3 +203,37 @@ def _recent_alerts_sync(limit: int, agent_id: str | None) -> list[dict]:
 async def recent_alerts(limit: int = 50, agent_id: str | None = None) -> list[dict]:
     """Return the most recent alerts, newest first."""
     return await asyncio.to_thread(_recent_alerts_sync, limit, agent_id)
+
+
+def _ensure_ack_column_sync() -> None:
+    conn = _conn()
+    try:
+        conn.run(
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ"
+        )
+        log.info("ack column ready")
+    finally:
+        conn.close()
+
+
+async def ensure_ack_column() -> None:
+    """Add acknowledged_at column if missing."""
+    await asyncio.to_thread(_ensure_ack_column_sync)
+
+
+def _ack_alert_sync(alert_id: int) -> bool:
+    conn = _conn()
+    try:
+        rows = conn.run(
+            "UPDATE alerts SET acknowledged_at = NOW() "
+            "WHERE id = :id AND acknowledged_at IS NULL RETURNING id",
+            id=alert_id,
+        )
+        return len(rows) > 0
+    finally:
+        conn.close()
+
+
+async def ack_alert(alert_id: int) -> bool:
+    """Mark an alert acknowledged. Returns False if not found or already acked."""
+    return await asyncio.to_thread(_ack_alert_sync, alert_id)

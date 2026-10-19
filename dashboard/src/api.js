@@ -21,3 +21,14 @@ export async function fetchAlerts(limit = 20) {
 export async function fetchHealth() {
   return getJson("/health");
 }
+
+
+export async function ackAlert(id) {
+  const res = await fetch(`${BACKEND}/api/alerts/${id}/ack`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error(`ack ${id} -> ${res.status}`);
+  }
+  return res.json();
+}

@@ -58,3 +58,22 @@ async def list_alerts(request: Request) -> JSONResponse:
         return JSONResponse({"error": "query failed"}, status_code=500)
 
     return JSONResponse({"alerts": rows, "count": len(rows), "limit": limit})
+
+
+async def ack_alert_endpoint(request: Request) -> JSONResponse:
+    """POST /api/alerts/{id}/ack"""
+    try:
+        alert_id = int(request.path_params["alert_id"])
+    except (KeyError, ValueError):
+        return JSONResponse({"error": "invalid alert id"}, status_code=400)
+
+    from siem_backend.db import ack_alert
+    try:
+        ok = await ack_alert(alert_id)
+    except Exception as exc:
+        log.error("ack failed: %s", exc)
+        return JSONResponse({"error": "ack failed"}, status_code=500)
+
+    if not ok:
+        return JSONResponse({"error": "not found or already acked"}, status_code=404)
+    return JSONResponse({"ok": True, "id": alert_id})

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchAlerts, fetchEvents, fetchHealth } from "./api";
+import { ackAlert, fetchAlerts, fetchEvents, fetchHealth } from "./api";
 import "./App.css";
 
 const POLL_MS = 3000;
@@ -13,14 +13,21 @@ function formatTime(iso) {
   }
 }
 
-function AlertRow({ alert }) {
+function AlertRow({ alert, onAck }) {
+  const acked = Boolean(alert.acknowledged_at);
   return (
-    <li className={`alert alert-${alert.severity}`}>
+    <li className={`alert alert-${alert.severity}${acked ? " acked" : ""}`}>
       <span className="badge">{alert.severity}</span>
       <span className="alert-title">{alert.title}</span>
       <span className="alert-meta">
         {alert.rule_id} · {alert.agent_id} · {formatTime(alert.created_at)}
+        {acked && <> · ✓ acked {formatTime(alert.acknowledged_at)}</>}
       </span>
+      {!acked && (
+        <button className="ack-btn" onClick={() => onAck(alert.id)}>
+          Acknowledge
+        </button>
+      )}
     </li>
   );
 }
@@ -43,6 +50,18 @@ export default function App() {
   const [alerts, setAlerts] = useState([]);
   const [events, setEvents] = useState([]);
   const [error, setError] = useState(null);
+
+  async function handleAck(id) {
+    try {
+      await ackAlert(id);
+      // immediately refetch so the UI updates without waiting for poll
+      const [a, e] = await Promise.all([fetchAlerts(20), fetchEvents(20)]);
+      setAlerts(a);
+      setEvents(e);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   useEffect(() => {
     let stop = false;
@@ -94,7 +113,7 @@ export default function App() {
             <p className="empty">No alerts yet.</p>
           ) : (
             <ul className="alerts">
-              {alerts.map((a) => <AlertRow key={a.id} alert={a} />)}
+              {alerts.map((a) => <AlertRow key={a.id} alert={a} onAck={handleAck} />)}
             </ul>
           )}
         </section>
