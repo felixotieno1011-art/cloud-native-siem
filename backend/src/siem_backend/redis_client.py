@@ -22,3 +22,12 @@ async def push_event(client: redis.Redis, event: dict[str, Any]) -> None:
     """Append an event to the staging queue."""
     import json
     await client.rpush(EVENT_QUEUE_KEY, json.dumps(event))
+
+
+ALERT_QUEUE_KEY = "siem:alerts:queue"
+
+
+async def push_alert(client: redis.Redis, alert: dict[str, Any]) -> None:
+    """Append an alert to the alerts live-tail queue."""
+    import json
+    await client.rpush(ALERT_QUEUE_KEY, json.dumps(alert))
