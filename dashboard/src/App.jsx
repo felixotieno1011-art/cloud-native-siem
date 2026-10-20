@@ -65,16 +65,26 @@ export default function App() {
   }
 
   useEffect(() => {
-    // 1. Initial fetch
-    async function init() {
+    // 1. Initial fetch & health retry
+    let stop = false;
+    async function checkHealth() {
+      if (stop) return;
       try {
-        const [h, a, e] = await Promise.all([
-          fetchHealth(), fetchAlerts(20), fetchEvents(20)
-        ]);
-        setHealth(h); setAlerts(a); setEvents(e);
-      } catch (err) { setError(err.message); }
+        const h = await fetchHealth();
+        setHealth(h);
+        setError(null);
+        // If we got health, do the initial data load
+        const [a, e] = await Promise.all([fetchAlerts(20), fetchEvents(20)]);
+        if (!stop) { setAlerts(a); setEvents(e); }
+      } catch (err) {
+        if (!stop) {
+          setHealth(null);
+          setError(err.message);
+          setTimeout(checkHealth, 5000); // retry in 5s
+        }
+      }
     }
-    init();
+    checkHealth();
 
     // 2. Live WebSocket feed
     const ws = connectLiveFeed(
@@ -106,7 +116,7 @@ export default function App() {
     
     ws.onopen = () => setError(null);
     ws.onerror = () => setError("Live feed disconnected");
-    return () => ws.close();
+    return () => { stop = true; ws.close(); };
   }, []);
 
   const filteredAlerts = alerts.filter(
