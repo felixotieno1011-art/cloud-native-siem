@@ -185,3 +185,95 @@ class HighCpuSustained:
 
 _high_cpu_rule = HighCpuSustained()
 register(_high_cpu_rule)
+
+
+class PortScan:
+    """Fire when an agent reports many new listening ports rapidly."""
+
+    id = "port_scan"
+    severity = "high"
+    title = "Rapid port opening detected"
+
+    window_seconds: int = 30
+    threshold: int = 10
+    cooldown_seconds: int = 300
+
+    def evaluate(
+        self, event: dict, agent_id: str, context: RuleContext
+    ) -> Alert | None:
+        if event.get("type") != "port_opened":
+            return None
+        
+        now = time.time()
+        key = (self.id, agent_id)
+        state = context.get(key) or {"window": deque(), "last_alert": 0.0}
+        window: deque = state["window"]
+
+        window.append(now)
+        cutoff = now - self.window_seconds
+        while window and window[0] < cutoff:
+            window.popleft()
+
+        context.set(key, state)
+
+        if len(window) < self.threshold:
+            return None
+        if now - state["last_alert"] < self.cooldown_seconds:
+            return None
+
+        state["last_alert"] = now
+        context.set(key, state)
+
+        return Alert(
+            rule_id=self.id,
+            severity=self.severity,
+            title=self.title,
+            details={
+                "count": len(window),
+                "window_seconds": self.window_seconds,
+            },
+        )
+
+
+register(PortScan())
+
+
+class UnusualOutbound:
+    """Fire when a connection is established to a public (non-private) IP."""
+
+    id = "unusual_outbound"
+    severity = "medium"
+    title = "Outbound connection to public IP"
+
+    def evaluate(
+        self, event: dict, agent_id: str, context: RuleContext
+    ) -> Alert | None:
+        if event.get("type") != "connection":
+            return None
+        if event.get("state") != "ESTABLISHED":
+            return None
+
+        rip = event.get("remote_ip", "")
+        if not rip:
+            return None
+            
+        # Simple check for private/local IPs
+        if rip.startswith(("127.", "10.", "192.168.", "0.0.0.0", "::1")):
+            return None
+        if rip.startswith("172."):
+            try:
+                second_octet = int(rip.split(".")[1])
+                if 16 <= second_octet <= 31:
+                    return None
+            except (IndexError, ValueError):
+                pass
+
+        return Alert(
+            rule_id=self.id,
+            severity=self.severity,
+            title=self.title,
+            details={"remote_ip": rip, "remote_port": event.get("remote_port")},
+        )
+
+
+register(UnusualOutbound())

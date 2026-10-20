@@ -45,16 +45,17 @@ function EventRow({ event }) {
   );
 }
 
+
 export default function App() {
   const [health, setHealth] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [events, setEvents] = useState([]);
   const [error, setError] = useState(null);
+  const [filter, setFilter] = useState("all");
 
   async function handleAck(id) {
     try {
       await ackAlert(id);
-      // immediately refetch so the UI updates without waiting for poll
       const [a, e] = await Promise.all([fetchAlerts(20), fetchEvents(20)]);
       setAlerts(a);
       setEvents(e);
@@ -91,6 +92,10 @@ export default function App() {
     };
   }, []);
 
+  const filteredAlerts = alerts.filter(
+    (a) => filter === "all" || a.severity === filter
+  );
+
   return (
     <div className="app">
       <header>
@@ -108,12 +113,26 @@ export default function App() {
 
       <main>
         <section className="panel">
-          <h2>Alerts <span className="count">{alerts.length}</span></h2>
-          {alerts.length === 0 ? (
-            <p className="empty">No alerts yet.</p>
+          <h2>
+            Alerts <span className="count">{filteredAlerts.length}</span>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </h2>
+          {filteredAlerts.length === 0 ? (
+            <p className="empty">No alerts match this filter.</p>
           ) : (
             <ul className="alerts">
-              {alerts.map((a) => <AlertRow key={a.id} alert={a} onAck={handleAck} />)}
+              {filteredAlerts.map((a) => (
+                <AlertRow key={a.id} alert={a} onAck={handleAck} />
+              ))}
             </ul>
           )}
         </section>

@@ -189,3 +189,14 @@ main {
 .ack-btn:active {
   transform: scale(0.96);
 }
+
+.filter-select {
+  margin-left: auto;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  background: #fff8e0;
+  border: 1px solid #b8942e;
+  border-radius: 4px;
+  color: #3a2e1f;
+  font-weight: 600;
+}
