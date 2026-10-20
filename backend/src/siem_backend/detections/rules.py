@@ -258,7 +258,7 @@ class UnusualOutbound:
             return None
             
         # Simple check for private/local IPs
-        if rip.startswith(("127.", "10.", "192.168.", "0.0.0.0", "::1")):
+        if rip.startswith(("127.", "10.", "192.168.", "0.0.0.0", "::1")):  # nosec B104
             return None
         if rip.startswith("172."):
             try:

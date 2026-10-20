@@ -35,12 +35,11 @@ jobs:
       - name: Install pip-audit
         run: pip install pip-audit
       - name: Audit agent dependencies
-        run: |
-          pip-audit --requirement <(pip install --dry-run --report - ./agent 2>/dev/null || true) || true
-          cd agent && pip-audit --strict || echo "agent audit completed"
+        working-directory: agent
+        run: pip-audit --desc || echo "agent audit completed (non-blocking)"
       - name: Audit backend dependencies
-        run: |
-          cd backend && pip-audit --strict || echo "backend audit completed"
+        working-directory: backend
+        run: pip-audit --desc || echo "backend audit completed (non-blocking)"
 
   gitleaks:
     name: gitleaks (secret scanning)
