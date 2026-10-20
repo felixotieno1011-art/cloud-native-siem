@@ -37,10 +37,15 @@ Requires: Termux (Android), PostgreSQL, Redis, Node.js.
     cd cloud-native-siem
     ./dev.sh
 
-    # In a new Termux session:
+    # In a new Termux session (Dashboard):
     cd dashboard
     npm install
     npm run dev -- --host 127.0.0.1 --port 5173
+
+    # In a third Termux session (Agent):
+    cd agent
+    source .venv/bin/activate
+    python -m siem_agent --url ws://127.0.0.1:8080/ws/ingest
 
 Open http://127.0.0.1:5173 on your phone.
 

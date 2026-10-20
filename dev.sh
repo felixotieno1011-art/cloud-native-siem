@@ -58,6 +58,17 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do
 done
 curl -sf http://127.0.0.1:8080/health >/dev/null 2>&1 || die "backend failed to start (see $LOGDIR/backend.log)"
 
+if [ -d "$REPO/agent/.venv" ]; then
+    say "starting agent (localhost)"
+    cd "$REPO/agent"
+    source .venv/bin/activate
+    nohup python -m siem_agent --url ws://127.0.0.1:8080/ws/ingest > "$LOGDIR/agent.log" 2>&1 &
+    echo $! > "$LOGDIR/agent.pid"
+    say "  agent ready"
+else
+    say "skipping agent (run 'cd agent && uv venv .venv && uv pip install -e .' first)"
+fi
+
 say "tailing backend log (Ctrl+C to stop watching; services keep running)"
 say "  pid file: $LOGDIR/backend.pid"
 say "  stop with: pkill -f siem_backend && pkill -f redis-server"
