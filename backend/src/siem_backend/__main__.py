@@ -48,10 +48,7 @@ def create_app() -> Starlette:
     middleware = [
         Middleware(
             CORSMiddleware,
-            allow_origins=[
-                "http://127.0.0.1:5173",
-                "http://localhost:5173",
-            ],
+            allow_origins=["*"],  # In prod, lock this down to your domain
             allow_methods=["GET", "POST"],
             allow_headers=["*"],
         ),

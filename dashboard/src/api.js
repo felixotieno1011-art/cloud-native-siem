@@ -1,4 +1,5 @@
 const BACKEND = "http://127.0.0.1:8080";
+const WS_BACKEND = "ws://127.0.0.1:8080";
 
 async function getJson(path) {
   const res = await fetch(`${BACKEND}${path}`);
@@ -34,7 +35,7 @@ export async function ackAlert(id) {
 }
 
 export function connectLiveFeed(onEvent, onAlert) {
-  const ws = new WebSocket("ws://127.0.0.1:8080/ws/live");
+  const ws = new WebSocket(`${WS_BACKEND}/ws/live`);
   ws.onmessage = (msg) => {
     const parsed = JSON.parse(msg.data);
     if (parsed.queue.includes("events")) onEvent(parsed.data);
