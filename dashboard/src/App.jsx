@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ackAlert, fetchAlerts, fetchEvents, fetchHealth } from "./api";
+import { ackAlert, fetchAlerts, fetchEvents, fetchHealth, connectLiveFeed } from "./api";
 import "./App.css";
 
 const POLL_MS = 3000;
@@ -65,31 +65,48 @@ export default function App() {
   }
 
   useEffect(() => {
-    let stop = false;
-
-    async function poll() {
+    // 1. Initial fetch
+    async function init() {
       try {
         const [h, a, e] = await Promise.all([
-          fetchHealth(),
-          fetchAlerts(20),
-          fetchEvents(20),
+          fetchHealth(), fetchAlerts(20), fetchEvents(20)
         ]);
-        if (stop) return;
-        setHealth(h);
-        setAlerts(a);
-        setEvents(e);
-        setError(null);
-      } catch (err) {
-        if (!stop) setError(err.message);
-      }
+        setHealth(h); setAlerts(a); setEvents(e);
+      } catch (err) { setError(err.message); }
     }
+    init();
 
-    poll();
-    const id = setInterval(poll, POLL_MS);
-    return () => {
-      stop = true;
-      clearInterval(id);
-    };
+    // 2. Live WebSocket feed
+    const ws = connectLiveFeed(
+      (newEvent) => {
+        // Normalize the Redis payload to match Postgres format
+        const formatted = {
+          id: "live-" + Date.now(),
+          event_type: newEvent.type || "unknown",
+          agent_id: newEvent._agent_id || "unknown",
+          payload: newEvent,
+          received_at: new Date(newEvent.timestamp * 1000).toISOString(),
+        };
+        setEvents((prev) => [formatted, ...prev].slice(0, 20));
+      },
+      (newAlert) => {
+        const formatted = {
+          id: "live-" + Date.now(),
+          rule_id: newAlert.rule_id,
+          severity: newAlert.severity,
+          title: newAlert.title,
+          agent_id: newAlert._agent_id || "unknown",
+          details: newAlert.details,
+          created_at: new Date().toISOString(),
+          acknowledged_at: null,
+        };
+        setAlerts((prev) => [formatted, ...prev].slice(0, 20));
+      }
+    );
+    
+    ws.onopen = () => setError(null);
+    ws.onerror = () => setError("Live feed disconnected");
+    return () => ws.close();
   }, []);
 
   const filteredAlerts = alerts.filter(
