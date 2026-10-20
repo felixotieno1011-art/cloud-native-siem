@@ -74,6 +74,7 @@ Open http://127.0.0.1:5173 on your phone.
 - [Security & Threat Model](SECURITY.md)
 - [Architecture Details](docs/architecture.md)
 - [API Reference](docs/api.md)
+- [Deployment Guide](docs/deployment.md)
 
 ## License
 
