@@ -19,6 +19,7 @@ from siem_backend.api import ack_alert_endpoint, list_alerts, list_events
 from siem_backend.db import ensure_ack_column, init_alerts_schema, init_schema
 from siem_backend.detections import rules  # noqa: F401
 from siem_backend.ws import ingest
+from siem_backend.live import live_feed
 
 
 log = logging.getLogger("siem.app")
@@ -62,6 +63,7 @@ def create_app() -> Starlette:
             Route("/api/alerts", list_alerts, methods=["GET"]),
             Route("/api/alerts/{alert_id:int}/ack", ack_alert_endpoint, methods=["POST"]),
             WebSocketRoute("/ws/ingest", ingest),
+            WebSocketRoute("/ws/live", live_feed),
         ],
         middleware=middleware,
         lifespan=lifespan,

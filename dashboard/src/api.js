@@ -32,3 +32,13 @@ export async function ackAlert(id) {
   }
   return res.json();
 }
+
+export function connectLiveFeed(onEvent, onAlert) {
+  const ws = new WebSocket("ws://127.0.0.1:8080/ws/live");
+  ws.onmessage = (msg) => {
+    const parsed = JSON.parse(msg.data);
+    if (parsed.queue.includes("events")) onEvent(parsed.data);
+    if (parsed.queue.includes("alerts")) onAlert(parsed.data);
+  };
+  return ws;
+}
