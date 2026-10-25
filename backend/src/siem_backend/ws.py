@@ -6,6 +6,7 @@ from typing import Any
 
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
+from siem_backend.auth import check_ws_key
 from siem_backend.db import insert_alert, insert_event
 from siem_backend.detections.engine import evaluate_event
 from siem_backend.redis_client import get_redis, push_alert, push_event
@@ -77,6 +78,10 @@ async def _process_line(
 async def ingest(websocket: WebSocket) -> None:
     """Accept an agent, parse NDJSON frames, persist, detect, ack."""
     await websocket.accept()
+    if not check_ws_key(websocket):
+        await websocket.send_json({"error": "unauthorized"})
+        await websocket.close(code=1008)
+        return
     agent_id = websocket.headers.get("x-agent-id", "unknown")
     log.info("agent connected: %s", agent_id)
 

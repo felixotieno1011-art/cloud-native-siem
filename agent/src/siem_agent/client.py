@@ -23,10 +23,11 @@ RECONNECT_MAX = 30.0
 class AgentClient:
     """Async WebSocket client for shipping events to the backend."""
 
-    def __init__(self, url: str, agent_id: str, token: str = "") -> None:
+    def __init__(self, url: str, agent_id: str, token: str = "", api_key: str = "dev-key-change-me") -> None:
         self.url = url
         self.agent_id = agent_id
         self.token = token
+        self.api_key = api_key
         self.buffer: deque[dict[str, Any]] = deque(maxlen=MAX_BUFFER)
         self._stop = asyncio.Event()
 
@@ -36,7 +37,7 @@ class AgentClient:
 
 
     def _headers(self) -> dict[str, str]:
-        headers = {"X-Agent-Id": self.agent_id}
+        headers = {"X-Agent-Id": self.agent_id, "X-API-Key": self.api_key}
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         return headers

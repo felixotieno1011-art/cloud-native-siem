@@ -16,6 +16,7 @@ from starlette.routing import Route, WebSocketRoute
 
 from siem_backend import __version__
 from siem_backend.api import ack_alert_endpoint, list_alerts, list_events
+from siem_backend.auth import require_api_key
 from siem_backend.db import ensure_ack_column, init_alerts_schema, init_schema
 from siem_backend.detections import rules  # noqa: F401
 from siem_backend.ws import ingest
@@ -44,6 +45,16 @@ async def health(request):
     return JSONResponse({"status": "ok", "version": __version__})
 
 
+async def _authed(handler):
+    """Wrap a handler so it requires the API key."""
+    async def wrapped(request):
+        resp = await require_api_key(request)
+        if resp is not None:
+            return resp
+        return await handler(request)
+    return wrapped
+
+
 def create_app() -> Starlette:
     middleware = [
         Middleware(
@@ -56,9 +67,9 @@ def create_app() -> Starlette:
     return Starlette(
         routes=[
             Route("/health", health),
-            Route("/api/events", list_events, methods=["GET"]),
-            Route("/api/alerts", list_alerts, methods=["GET"]),
-            Route("/api/alerts/{alert_id:int}/ack", ack_alert_endpoint, methods=["POST"]),
+            Route("/api/events", _authed(list_events), methods=["GET"]),
+            Route("/api/alerts", _authed(list_alerts), methods=["GET"]),
+            Route("/api/alerts/{alert_id:int}/ack", _authed(ack_alert_endpoint), methods=["POST"]),
             WebSocketRoute("/ws/ingest", ingest),
             WebSocketRoute("/ws/live", live_feed),
         ],

@@ -1,8 +1,11 @@
 const BACKEND = "http://127.0.0.1:8080";
+const API_KEY = "dev-key-change-me";  // TODO: read from import.meta.env
 const WS_BACKEND = "ws://127.0.0.1:8080";
 
 async function getJson(path) {
-  const res = await fetch(`${BACKEND}${path}`);
+  const res = await fetch(`${BACKEND}${path}`, {
+    headers: { "X-API-Key": API_KEY },
+  });
   if (!res.ok) {
     throw new Error(`${path} -> ${res.status}`);
   }
@@ -27,6 +30,7 @@ export async function fetchHealth() {
 export async function ackAlert(id) {
   const res = await fetch(`${BACKEND}/api/alerts/${id}/ack`, {
     method: "POST",
+    headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) {
     throw new Error(`ack ${id} -> ${res.status}`);
