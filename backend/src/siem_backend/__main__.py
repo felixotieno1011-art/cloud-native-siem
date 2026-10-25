@@ -45,7 +45,7 @@ async def health(request):
     return JSONResponse({"status": "ok", "version": __version__})
 
 
-async def _authed(handler):
+def _authed(handler):
     """Wrap a handler so it requires the API key."""
     async def wrapped(request):
         resp = await require_api_key(request)
